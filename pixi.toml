@@ -11,7 +11,7 @@ sim-build = { features = ["sim-runtime", "build-dependencies"], solve-group = "d
 sim-runtime = { features = ["sim-runtime"], solve-group = "default" }
 
 [tasks]
-import-repos = "bash -c 'mkdir -p \"$ROBOTNIK_WS/src\" && ln -sfn \"$PIXI_PROJECT_ROOT\" \"$ROBOTNIK_WS/src/robotnik_simulation\" && awk \"BEGIN{s=0} /^  robotnik\\/robotnik_simulation:/{s=1;next} s&&/^  [^[:space:]]/{s=0} !s{print}\" \"$PIXI_PROJECT_ROOT/dependencies/repos/robotnik_simulation.jazzy.repos\" | vcs import --skip-existing \"$ROBOTNIK_WS/src\"'"
+import-repos = "bash -c 'mkdir -p \"$ROBOTNIK_WS/src\" && ln -sfn \"$PIXI_PROJECT_ROOT\" \"$ROBOTNIK_WS/src/robotnik_simulation\" && vcs import --skip-existing --input \"$PIXI_PROJECT_ROOT/dependencies/repos/robotnik_simulation.lyrical.repos\" \"$ROBOTNIK_WS/src\"'"
 colcon-build = "colcon --log-base \"$ROBOTNIK_WS/log\" build --symlink-install --base-paths \"$ROBOTNIK_WS/src\" --build-base \"$ROBOTNIK_WS/build\" --install-base \"$ROBOTNIK_WS/install\" --packages-up-to robotnik_gazebo_ignition robotnik_description robotnik_sensors teleop_panel --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 $CMAKE_PYTHON_ARGS"
 
 [tasks.spawn-world]
