@@ -131,8 +131,8 @@ def launch_setup(context, params):
         robot_id = substitute_param_context(params['robot_id'], context)
         robot_model = substitute_param_context(params['robot_model'], context)
         bridge_raw = [
-            (f"/{robot_id}/imu/data", f"/{robot_id}/imu/data", "sensor_msgs/msg/Imu", "ignition.msgs.IMU", "GZ_TO_ROS"),
-            (f"/{robot_id}/gps/data", f"/{robot_id}/gps/fix", "sensor_msgs/msg/NavSatFix", "ignition.msgs.NavSat", "GZ_TO_ROS"),
+            (f"/{robot_id}/imu/data", f"/{robot_id}/imu/data", "sensor_msgs/msg/Imu", "gz.msgs.IMU", "GZ_TO_ROS"),
+            (f"/{robot_id}/gps/data", f"/{robot_id}/gps/fix", "sensor_msgs/msg/NavSatFix", "gz.msgs.NavSat", "GZ_TO_ROS"),
         ]
         def add_camera(camera_name):
             bridge_raw.extend([
