@@ -47,3 +47,7 @@ launch_params_*
 
 # Environment overrides (keep template env/ files, ignore local overrides)
 *.env.local
+
+# pixi environments
+.pixi/*
+!.pixi/config.toml
