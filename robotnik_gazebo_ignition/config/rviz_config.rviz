@@ -30,11 +30,13 @@ Panels:
     SyncMode: 0
     SyncSource: ""
   - Class: teleop_panel/Teleop
+    CommandFrameId: robot_base_footprint
+    CommandMessageType: TwistStamped
     Enabled: false
     MaxAngular: 1
     MaxLinear: 1
     Name: Teleop
-    Topic: /robot/robotnik_base_control/cmd_vel_unstamped
+    Topic: /robot/robotnik_base_control/cmd_vel
 Visualization Manager:
   Class: ""
   Displays:

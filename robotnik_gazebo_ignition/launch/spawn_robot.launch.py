@@ -234,52 +234,46 @@ def launch_setup(context, params):
 
     robot_controller_config = ParameterFile(path, allow_substs=True)
 
-    # RB-CAR uses the standard Ackermann controller and requires controller-specific
-    # ROS argument remaps. Spawn it separately so these remaps are applied only to
-    # robotnik_base_control.
-    is_rbcar = EqualsSubstitution(params['robot'], 'rbcar')
+    # RB-CAR and RB-KAIROS use standard upstream ros2_controllers (Ackermann and Mecanum)
+    # and require controller-specific ROS argument remaps. Spawn robotnik_base_control
+    # separately so these remaps are applied only to robotnik_base_control.
+    robot_type = substitute_param_context(params['robot'], context)
+    uses_standard_base_controller = robot_type in ('rbcar', 'rbkairos')
 
-    ret.append(Node(
-        package='controller_manager',
-        executable='spawner',
-        namespace=params['robot_id'],
-        arguments=controllers,
-        parameters=[robot_controller_config],
-        output='screen',
-        condition=UnlessCondition(is_rbcar),
-    ))
+    if not uses_standard_base_controller:
+        ret.append(Node(
+            package='controller_manager',
+            executable='spawner',
+            namespace=params['robot_id'],
+            arguments=controllers,
+            parameters=[robot_controller_config],
+            output='screen',
+        ))
+    else:
+        non_base_controllers = [c for c in controllers if c != 'robotnik_base_control']
+        ret.append(Node(
+            package='controller_manager',
+            executable='spawner',
+            namespace=params['robot_id'],
+            arguments=non_base_controllers,
+            parameters=[robot_controller_config],
+            output='screen',
+        ))
 
-    rbcar_joint_state_broadcaster = [
-        '--controller-manager-timeout', '60',
-        '--service-call-timeout', '60',
-        '--unload-on-kill',
-        'joint_state_broadcaster',
-    ]
-    ret.append(Node(
-        package='controller_manager',
-        executable='spawner',
-        namespace=params['robot_id'],
-        arguments=rbcar_joint_state_broadcaster,
-        parameters=[robot_controller_config],
-        output='screen',
-        condition=IfCondition(is_rbcar),
-    ))
-
-    rbcar_ackermann_controller = [
-        '--controller-manager-timeout', '60',
-        '--service-call-timeout', '60',
-        'robotnik_base_control',
-        '--controller-ros-args', '--ros-args -r ~/tf_odometry:=/tf -r ~/odometry:=~/odom -r ~/reference:=~/cmd_vel',
-    ]
-    ret.append(Node(
-        package='controller_manager',
-        executable='spawner',
-        namespace=params['robot_id'],
-        arguments=rbcar_ackermann_controller,
-        parameters=[robot_controller_config],
-        output='screen',
-        condition=IfCondition(is_rbcar),
-    ))
+        base_controller_args = [
+            '--controller-manager-timeout', '60',
+            '--service-call-timeout', '60',
+            'robotnik_base_control',
+            '--controller-ros-args', '--ros-args -r ~/tf_odometry:=/tf -r ~/odometry:=~/odom -r ~/reference:=~/cmd_vel',
+        ]
+        ret.append(Node(
+            package='controller_manager',
+            executable='spawner',
+            namespace=params['robot_id'],
+            arguments=base_controller_args,
+            parameters=[robot_controller_config],
+            output='screen',
+        ))
 
     # If no custom RViz config is provided, adapt the default RViz config to the
     # current robot namespace and frame prefix. The default config is authored for
