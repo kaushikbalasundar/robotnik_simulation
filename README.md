@@ -63,7 +63,7 @@ That guide covers:
 
 Runs RB-Kairos on ROS 2 Lyrical and Gazebo Ionic from a self-contained [pixi](https://pixi.sh) environment. Nothing is installed outside the repository apart from pixi itself. Supported robots on this path: `rbkairos`, `rbkairos_plus` (and `rbcar`, untested). Other robots still need `robotnik_controllers`, which has no Lyrical build.
 
-Requirements: Linux x86_64, glibc 2.34 or newer, a GPU or software OpenGL, about 8 GB of disk for the environment, and a terminal attached to a graphical session (`echo $DISPLAY` prints a value). Plain SSH sessions can only run with `--gui false` and `--run_rviz false`.
+Requirements: Linux x86_64, glibc 2.34 or newer, a GPU or software OpenGL, about 8 GB of disk for the environment, and a terminal attached to a graphical session (`echo $DISPLAY` prints a value). Plain SSH sessions can only run headless (`pixi run spawn-world empty false` and `pixi run spawn-rbkairos rbkairos false`).
 
 ```bash
 # 1. pixi, once. Restart the shell afterwards.
@@ -80,9 +80,12 @@ pixi install
 pixi run import-repos
 pixi run colcon-build
 
-# 5. Run, one command per terminal.
-pixi run spawn-world                 # Gazebo Ionic; add --world demo or --gui false
-pixi run spawn-rbkairos              # robot + RViz; add --robot_model rbkairos_plus or --run_rviz false
+# 5. Run, one command per terminal. Task arguments are positional.
+pixi run spawn-world                 # world=empty gui=true
+pixi run spawn-world demo            # other worlds: demo, lightweight_scene
+pixi run spawn-world empty false     # headless (no Gazebo GUI)
+pixi run spawn-rbkairos              # robot_model=rbkairos run_rviz=true
+pixi run spawn-rbkairos rbkairos_plus false   # arm variant, no RViz
 pixi run teleop                      # keyboard teleop, TwistStamped on /robot/robotnik_base_control/cmd_vel
 ```
 
