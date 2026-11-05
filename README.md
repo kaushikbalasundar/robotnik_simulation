@@ -89,7 +89,7 @@ pixi run spawn-rbkairos rbkairos_plus false   # arm variant, no RViz
 pixi run teleop                      # keyboard teleop, TwistStamped on /robot/robotnik_base_control/cmd_vel
 ```
 
-Expected result: the robot appears in Gazebo, `ros2 topic hz /robot/robotnik_base_control/odom` reports about 50 Hz inside `pixi shell`, and the robot moves when keys are pressed in the teleop terminal or the RViz teleop panel is enabled.
+Expected result: the robot appears in Gazebo, `ros2 topic hz /robot/robotnik_base_control/odom` reports about 10 Hz inside `pixi shell`, and the robot moves when keys are pressed in the teleop terminal or the RViz teleop panel is enabled.
 
 The dependency list is [`dependencies/repos/robotnik_simulation.lyrical.repos`](dependencies/repos/robotnik_simulation.lyrical.repos). Two entries point at forks with changes not yet upstream (`robotnik_description`: mecanum controller type for rbkairos; `teleop_panel`: Qt6 build). Rebuild after editing anything with `pixi run colcon-build`.
 
