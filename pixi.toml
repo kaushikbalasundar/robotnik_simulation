@@ -22,10 +22,11 @@ args = [
 ]
 
 [tasks.spawn-rbkairos]
-cmd = "bash -c 'source \"$ROBOTNIK_WS/install/setup.bash\" && ros2 launch robotnik_gazebo_ignition spawn_robot.launch.py robot:=rbkairos robot_model:={{robot_model}} run_rviz:={{run_rviz}}'"
+cmd = "bash -c 'source \"$ROBOTNIK_WS/install/setup.bash\" && ros2 launch robotnik_gazebo_ignition spawn_robot.launch.py robot:=rbkairos robot_model:={{robot_model}} run_rviz:={{run_rviz}} base_controller:={{base_controller}}'"
 args = [
   { arg = "robot_model", default = "rbkairos" },
   { arg = "run_rviz", default = "true" },
+  { arg = "base_controller", default = "upstream" },
 ]
 
 [tasks.teleop]

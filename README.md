@@ -86,10 +86,22 @@ pixi run spawn-world demo            # other worlds: demo, lightweight_scene
 pixi run spawn-world empty false     # headless (no Gazebo GUI)
 pixi run spawn-rbkairos              # robot_model=rbkairos run_rviz=true
 pixi run spawn-rbkairos rbkairos_plus false   # arm variant, no RViz
+pixi run spawn-rbkairos rbkairos true robotnik # proprietary controller (needs a Lyrical robotnik_controllers build)
 pixi run teleop                      # keyboard teleop, TwistStamped on /robot/robotnik_base_control/cmd_vel
 ```
 
 Expected result: the robot appears in Gazebo, `ros2 topic hz /robot/robotnik_base_control/odom` reports about 10 Hz inside `pixi shell`, and the robot moves when keys are pressed in the teleop terminal or the RViz teleop panel is enabled.
+
+#### Base controller selection
+
+`spawn_robot.launch.py` takes `base_controller:=robotnik|upstream` (default `robotnik`, environment variable `BASE_CONTROLLER`).
+
+| Value | Controller plugin | Command topic | Files used |
+|---|---|---|---|
+| `robotnik` | `robotnik_controllers/RBKairosController` (proprietary .deb, Jazzy only) | `~/cmd_vel_unstamped`, `geometry_msgs/Twist` | `<model>_ros2_control.yaml` and robotnik_description's `rbkairos_controller_params.yaml` |
+| `upstream` | `mecanum_drive_controller/MecanumDriveController` (ros2_controllers) | `~/cmd_vel`, `geometry_msgs/TwistStamped` | `<model>_upstream_ros2_control.yaml` and `rbkairos_upstream_controller_params.yaml` in this package |
+
+The pixi `spawn-rbkairos` task passes `upstream` because the proprietary plugin has no Lyrical build. The default RViz config adapts the teleop panel's topic and message type to the selected controller. `rbcar` always uses the upstream Ackermann controller.
 
 The dependency list is [`dependencies/repos/robotnik_simulation.lyrical.repos`](dependencies/repos/robotnik_simulation.lyrical.repos). Two entries point at forks with changes not yet upstream (`robotnik_description`: mecanum controller type for rbkairos; `teleop_panel`: Qt6 build). Rebuild after editing anything with `pixi run colcon-build`.
 
