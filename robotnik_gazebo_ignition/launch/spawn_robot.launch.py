@@ -41,7 +41,8 @@ from robotnik_common.launch import AddArgumentParser, ExtendedArgument
 
 from pathlib import Path
 
-def generate_rviz_config(context, rviz_config_path, robot_id, frame_prefix):
+def generate_rviz_config(context, rviz_config_path, robot_id, frame_prefix,
+                         stamped_cmd_vel=True):
     """Generate an RViz config adapted to the current robot instance.
 
     The default RViz config is stored with topics under /robot/ and frames using
@@ -76,6 +77,14 @@ def generate_rviz_config(context, rviz_config_path, robot_id, frame_prefix):
     content = content.replace(f'/{robot_ns_placeholder}/', f'/{robot_id_value}/')
     content = content.replace(robot_description_placeholder, 'robot_description')
 
+    # The template teleop panel publishes TwistStamped on cmd_vel (upstream
+    # ros2_controllers). The Robotnik controllers take Twist on cmd_vel_unstamped.
+    if not stamped_cmd_vel:
+        content = content.replace(
+            'CommandMessageType: TwistStamped', 'CommandMessageType: Twist')
+        content = content.replace(
+            '/robotnik_base_control/cmd_vel\n', '/robotnik_base_control/cmd_vel_unstamped\n')
+
     with tempfile.NamedTemporaryFile(
         mode='w',
         prefix='rviz_config_',
@@ -94,6 +103,40 @@ def substitute_param_context(param, context):
 def launch_setup(context, params):
     ret = []
 
+    robot_type = substitute_param_context(params['robot'], context)
+    robot_model = substitute_param_context(params['robot_model'], context)
+    base_controller = substitute_param_context(params['base_controller'], context)
+    if base_controller not in ('robotnik', 'upstream'):
+        raise RuntimeError(
+            f"base_controller must be 'robotnik' or 'upstream', got '{base_controller}'")
+
+    profile_dir = (
+        Path(FindPackageShare('robotnik_gazebo_ignition').perform(context))
+        / 'config' / 'profile' / robot_type
+    )
+
+    # base_controller:=upstream replaces the proprietary robotnik_controllers
+    # plugin with a standard ros2_controllers one. It needs a different
+    # controller-types file for gz_ros2_control and a different parameter
+    # profile. Both live next to the Robotnik ones with an `_upstream` suffix.
+    # rbcar already uses an upstream controller in its default profile.
+    if base_controller == 'upstream':
+        controller_params_file = profile_dir / f'{robot_type}_upstream_controller_params.yaml'
+        ros2_control_yaml = profile_dir / f'{robot_model}_upstream_ros2_control.yaml'
+        for f in (controller_params_file, ros2_control_yaml):
+            if not f.is_file():
+                raise RuntimeError(
+                    f"base_controller:=upstream is not available for {robot_model}: "
+                    f"missing {f}")
+        controller_params_file = str(controller_params_file)
+    else:
+        controller_params_file = ''
+        ros2_control_yaml = profile_dir / f'{robot_model}_ros2_control.yaml'
+    ros2_control_yaml = str(ros2_control_yaml)
+
+    uses_standard_base_controller = (
+        robot_type == 'rbcar' or base_controller == 'upstream')
+
     # Robot Description
     ret.append(IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -106,7 +149,8 @@ def launch_setup(context, params):
             'namespace': params['robot_id'],
             'gazebo_ignition': 'true',
             'arm_type': params['arm_type'],
-            'low_performance_simulation': params['low_performance_simulation']
+            'low_performance_simulation': params['low_performance_simulation'],
+            'controller_params_file': controller_params_file,
         }.items(),
     ))
 
@@ -131,8 +175,8 @@ def launch_setup(context, params):
         robot_id = substitute_param_context(params['robot_id'], context)
         robot_model = substitute_param_context(params['robot_model'], context)
         bridge_raw = [
-            (f"/{robot_id}/imu/data", f"/{robot_id}/imu/data", "sensor_msgs/msg/Imu", "ignition.msgs.IMU", "GZ_TO_ROS"),
-            (f"/{robot_id}/gps/data", f"/{robot_id}/gps/fix", "sensor_msgs/msg/NavSatFix", "ignition.msgs.NavSat", "GZ_TO_ROS"),
+            (f"/{robot_id}/imu/data", f"/{robot_id}/imu/data", "sensor_msgs/msg/Imu", "gz.msgs.IMU", "GZ_TO_ROS"),
+            (f"/{robot_id}/gps/data", f"/{robot_id}/gps/fix", "sensor_msgs/msg/NavSatFix", "gz.msgs.NavSat", "GZ_TO_ROS"),
         ]
         def add_camera(camera_name):
             bridge_raw.extend([
@@ -207,17 +251,7 @@ def launch_setup(context, params):
             existing_controllers.append(controller)
         return existing_controllers
 
-    def get_ros2_control_yaml_path(params):
-        base_path = (
-            Path(FindPackageShare('robotnik_gazebo_ignition').perform(context))
-            / 'config'
-            / 'profile'
-            / substitute_param_context(params['robot'], context)
-        )
-        robot_model = substitute_param_context(params['robot_model'], context)
-        return str(base_path / f'{robot_model}_ros2_control.yaml')
-
-    path = get_ros2_control_yaml_path(params)
+    path = ros2_control_yaml
     new_controllers = extract_controllers_from_yaml(path)
 
     # ROS2 control
@@ -234,52 +268,44 @@ def launch_setup(context, params):
 
     robot_controller_config = ParameterFile(path, allow_substs=True)
 
-    # RB-CAR uses the standard Ackermann controller and requires controller-specific
-    # ROS argument remaps. Spawn it separately so these remaps are applied only to
-    # robotnik_base_control.
-    is_rbcar = EqualsSubstitution(params['robot'], 'rbcar')
+    # Standard ros2_controllers (Ackermann for rbcar, Mecanum for rbkairos with
+    # base_controller:=upstream) publish on ~/odometry and ~/tf_odometry and
+    # subscribe on ~/reference. Spawn robotnik_base_control separately so the
+    # remaps onto the Robotnik topic names apply only to it.
+    if not uses_standard_base_controller:
+        ret.append(Node(
+            package='controller_manager',
+            executable='spawner',
+            namespace=params['robot_id'],
+            arguments=controllers,
+            parameters=[robot_controller_config],
+            output='screen',
+        ))
+    else:
+        non_base_controllers = [c for c in controllers if c != 'robotnik_base_control']
+        ret.append(Node(
+            package='controller_manager',
+            executable='spawner',
+            namespace=params['robot_id'],
+            arguments=non_base_controllers,
+            parameters=[robot_controller_config],
+            output='screen',
+        ))
 
-    ret.append(Node(
-        package='controller_manager',
-        executable='spawner',
-        namespace=params['robot_id'],
-        arguments=controllers,
-        parameters=[robot_controller_config],
-        output='screen',
-        condition=UnlessCondition(is_rbcar),
-    ))
-
-    rbcar_joint_state_broadcaster = [
-        '--controller-manager-timeout', '60',
-        '--service-call-timeout', '60',
-        '--unload-on-kill',
-        'joint_state_broadcaster',
-    ]
-    ret.append(Node(
-        package='controller_manager',
-        executable='spawner',
-        namespace=params['robot_id'],
-        arguments=rbcar_joint_state_broadcaster,
-        parameters=[robot_controller_config],
-        output='screen',
-        condition=IfCondition(is_rbcar),
-    ))
-
-    rbcar_ackermann_controller = [
-        '--controller-manager-timeout', '60',
-        '--service-call-timeout', '60',
-        'robotnik_base_control',
-        '--controller-ros-args', '--ros-args -r ~/tf_odometry:=/tf -r ~/odometry:=~/odom -r ~/reference:=~/cmd_vel',
-    ]
-    ret.append(Node(
-        package='controller_manager',
-        executable='spawner',
-        namespace=params['robot_id'],
-        arguments=rbcar_ackermann_controller,
-        parameters=[robot_controller_config],
-        output='screen',
-        condition=IfCondition(is_rbcar),
-    ))
+        base_controller_args = [
+            '--controller-manager-timeout', '60',
+            '--service-call-timeout', '60',
+            'robotnik_base_control',
+            '--controller-ros-args', '--ros-args -r ~/tf_odometry:=/tf -r ~/odometry:=~/odom -r ~/reference:=~/cmd_vel',
+        ]
+        ret.append(Node(
+            package='controller_manager',
+            executable='spawner',
+            namespace=params['robot_id'],
+            arguments=base_controller_args,
+            parameters=[robot_controller_config],
+            output='screen',
+        ))
 
     # If no custom RViz config is provided, adapt the default RViz config to the
     # current robot namespace and frame prefix. The default config is authored for
@@ -304,7 +330,8 @@ def launch_setup(context, params):
             rviz_config_default,
             params['robot_id'],
             params['frame_prefix'],
-    )
+            stamped_cmd_vel=uses_standard_base_controller,
+        )
 
     use_sim_time = {"use_sim_time": True}
 
@@ -345,6 +372,7 @@ def generate_launch_description():
         ("rviz_config", "RViz configuration file", "", "CONFIG_RVIZ"),
         ("use_sim_time", "Use simulation time", "True", "USE_SIM_TIME"),
         ("low_performance_simulation", "Enable Low Performance Simulation", "False", "LOW_PERFORMANCE_SIMULATION"),
+        ("base_controller", "Base controller: 'robotnik' (proprietary robotnik_controllers) or 'upstream' (ros2_controllers)", "robotnik", "BASE_CONTROLLER"),
     ]
 
     ld = LaunchDescription()

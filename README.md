@@ -59,6 +59,52 @@ That guide covers:
 - editing [`env/robot.env`](env/robot.env) to choose robot, world, GUI and RViz options
 - opening a second terminal with `docker exec` to interact with the running simulation from inside the runtime container
 
+### Pixi (ROS 2 Lyrical, no system ROS)
+
+Runs RB-Kairos on ROS 2 Lyrical and Gazebo Ionic from a self-contained [pixi](https://pixi.sh) environment. Nothing is installed outside the repository apart from pixi itself. Supported robots on this path: `rbkairos`, `rbkairos_plus` (and `rbcar`, untested). Other robots still need `robotnik_controllers`, which has no Lyrical build.
+
+Requirements: Linux x86_64, glibc 2.34 or newer, a GPU or software OpenGL, about 8 GB of disk for the environment, and a terminal attached to a graphical session (`echo $DISPLAY` prints a value). Plain SSH sessions can only run headless (`pixi run spawn-world empty false` and `pixi run spawn-rbkairos rbkairos false`).
+
+```bash
+# 1. pixi, once. Restart the shell afterwards.
+curl -fsSL https://pixi.sh/install.sh | sh
+
+# 2. Clone this repository (the branch carrying the Lyrical port).
+git clone -b feature/lyrical/PortToLyrical https://github.com/kaushikbalasundar/robotnik_simulation.git
+cd robotnik_simulation
+
+# 3. Create the environment (several minutes, downloads a few GB).
+pixi install
+
+# 4. Fetch the dependency repositories into ../robotnik_ws/src and build.
+pixi run import-repos
+pixi run colcon-build
+
+# 5. Run, one command per terminal. Task arguments are positional.
+pixi run spawn-world                 # world=empty gui=true
+pixi run spawn-world demo            # other worlds: demo, lightweight_scene
+pixi run spawn-world empty false     # headless (no Gazebo GUI)
+pixi run spawn-rbkairos              # robot_model=rbkairos run_rviz=true
+pixi run spawn-rbkairos rbkairos_plus false   # arm variant, no RViz
+pixi run spawn-rbkairos rbkairos true robotnik # proprietary controller (needs a Lyrical robotnik_controllers build)
+pixi run teleop                      # keyboard teleop, TwistStamped on /robot/robotnik_base_control/cmd_vel
+```
+
+Expected result: the robot appears in Gazebo, `ros2 topic hz /robot/robotnik_base_control/odom` reports about 10 Hz inside `pixi shell`, and the robot moves when keys are pressed in the teleop terminal or the RViz teleop panel is enabled.
+
+#### Base controller selection
+
+`spawn_robot.launch.py` takes `base_controller:=robotnik|upstream` (default `robotnik`, environment variable `BASE_CONTROLLER`).
+
+| Value | Controller plugin | Command topic | Files used |
+|---|---|---|---|
+| `robotnik` | `robotnik_controllers/RBKairosController` (proprietary .deb, Jazzy only) | `~/cmd_vel_unstamped`, `geometry_msgs/Twist` | `<model>_ros2_control.yaml` and robotnik_description's `rbkairos_controller_params.yaml` |
+| `upstream` | `mecanum_drive_controller/MecanumDriveController` (ros2_controllers) | `~/cmd_vel`, `geometry_msgs/TwistStamped` | `<model>_upstream_ros2_control.yaml` and `rbkairos_upstream_controller_params.yaml` in this package |
+
+The pixi `spawn-rbkairos` task passes `upstream` because the proprietary plugin has no Lyrical build. The default RViz config adapts the teleop panel's topic and message type to the selected controller. `rbcar` always uses the upstream Ackermann controller.
+
+The dependency list is [`dependencies/repos/robotnik_simulation.lyrical.repos`](dependencies/repos/robotnik_simulation.lyrical.repos). Two entries point at forks with changes not yet upstream (`robotnik_description`: mecanum controller type for rbkairos; `teleop_panel`: Qt6 build). Rebuild after editing anything with `pixi run colcon-build`.
+
 ### Bringup
 
 Launch complete simulation:

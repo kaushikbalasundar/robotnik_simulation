@@ -1,0 +1,94 @@
+[workspace]
+name = "robotnik_simulation"
+channels = ["https://prefix.dev/conda-forge", "https://prefix.dev/robostack-lyrical"]
+platforms = ["linux-64"]
+version = "0.1.0"
+preview = ["pixi-build"]
+
+[environments]
+default = { features = ["sim-runtime", "build-dependencies", "dev-only"], solve-group = "default" }
+sim-build = { features = ["sim-runtime", "build-dependencies"], solve-group = "default" }
+sim-runtime = { features = ["sim-runtime"], solve-group = "default" }
+
+[tasks]
+import-repos = "bash -c 'mkdir -p \"$ROBOTNIK_WS/src\" && ln -sfn \"$PIXI_PROJECT_ROOT\" \"$ROBOTNIK_WS/src/robotnik_simulation\" && vcs import --skip-existing --input \"$PIXI_PROJECT_ROOT/dependencies/repos/robotnik_simulation.lyrical.repos\" \"$ROBOTNIK_WS/src\"'"
+colcon-build = "colcon --log-base \"$ROBOTNIK_WS/log\" build --symlink-install --base-paths \"$ROBOTNIK_WS/src\" --build-base \"$ROBOTNIK_WS/build\" --install-base \"$ROBOTNIK_WS/install\" --packages-up-to robotnik_gazebo_ignition robotnik_description robotnik_sensors teleop_panel --cmake-args -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 $CMAKE_PYTHON_ARGS"
+
+[tasks.spawn-world]
+cmd = "bash -c 'source \"$ROBOTNIK_WS/install/setup.bash\" && ros2 launch robotnik_gazebo_ignition spawn_world.launch.py world:={{world}} gui:={{gui}}'"
+args = [
+  { arg = "world", default = "empty" },
+  { arg = "gui", default = "true" },
+]
+
+[tasks.spawn-rbkairos]
+cmd = "bash -c 'source \"$ROBOTNIK_WS/install/setup.bash\" && ros2 launch robotnik_gazebo_ignition spawn_robot.launch.py robot:=rbkairos robot_model:={{robot_model}} run_rviz:={{run_rviz}} base_controller:={{base_controller}}'"
+args = [
+  { arg = "robot_model", default = "rbkairos" },
+  { arg = "run_rviz", default = "true" },
+  { arg = "base_controller", default = "upstream" },
+]
+
+[tasks.teleop]
+cmd = "bash -c 'source \"$ROBOTNIK_WS/install/setup.bash\" && ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -r cmd_vel:=/{{robot_id}}/robotnik_base_control/cmd_vel -p stamped:=true -p frame_id:={{robot_id}}_base_footprint'"
+args = [
+  { arg = "robot_id", default = "robot" },
+]
+
+[feature.sim-runtime.dependencies]
+python = ">=3.14,<3.15"
+setuptools = "==68.1.2"
+pyyaml = "==6.0.3"
+empy = "==3.3.4"
+
+ros-lyrical-ros-base = ">=0.13.0,<0.14"
+ros-lyrical-rmw-zenoh-cpp = ">=0.10.4,<0.11"
+ros-lyrical-xacro = ">=2.1.1,<2.2"
+ros-lyrical-robot-state-publisher = "*"
+ros-lyrical-ros-gz-sim = ">=3.0.9,<3.1"
+ros-lyrical-ros-gz-bridge = ">=3.0.9,<3.1"
+ros-lyrical-ros-gz-interfaces = ">=3.0.9,<3.1"
+ros-lyrical-gz-ros2-control = ">=3.0.9,<3.1"
+ros-lyrical-ros2-control = ">=6.10.0,<7.0"
+ros-lyrical-ros2-controllers = ">=6.9.0,<7.0"
+ros-lyrical-controller-manager = ">=6.10.0,<7.0"
+ros-lyrical-controller-interface = ">=6.10.0,<7.0"
+ros-lyrical-control-msgs = "*"
+ros-lyrical-control-toolbox = ">=6.4.0,<7.0"
+ros-lyrical-joint-state-broadcaster = ">=6.9.0,<7.0"
+ros-lyrical-joint-trajectory-controller = ">=6.9.0,<7.0"
+ros-lyrical-mecanum-drive-controller = ">=6.9.0,<7.0"
+ros-lyrical-ackermann-steering-controller = ">=6.9.0,<7.0"
+ros-lyrical-ackermann-msgs = "*"
+ros-lyrical-ur-description = ">=4.3.0,<5.0"
+ros-lyrical-ur-simulation-gz = ">=2.5.0,<3.0"
+ros-lyrical-rviz2 = "*"
+ros-lyrical-rviz-common = "*"
+ros-lyrical-teleop-twist-keyboard = "*"
+qt6-main = ">=6.11.2,<7.0"
+
+gz-sim = ">=10.0.0,<11.0"
+gz-msgs = ">=12.0.1,<13.0.0"
+libgz-transport = ">=15.0.2,<16"
+gz-math = ">=9.2.0,<10.0"
+gz-utils = ">=4.0.0,<5.0"
+libsdformat = ">=16.1.0,<16.2"
+
+[feature.build-dependencies.dependencies]
+c-compiler = "*"
+cxx-compiler = "*"
+sysroot_linux-64 = "==2.34"
+cmake = ">=3.20,<3.31"
+ninja = "*"
+ros-lyrical-ament-cmake-vendor-package = ">=2.8.7,<2.9"
+colcon-common-extensions = ">=0.3.0,<0.4"
+
+[feature.dev-only.dependencies]
+ros-lyrical-desktop = ">=0.13.0,<0.14"
+vcstool = ">=1.1.7,<2"
+git = ">=2.53.0,<3"
+pip = ">=26.1.2,<27"
+wheel = ">=0.48.0,<0.49"
+
+[feature.sim-runtime.activation]
+scripts = ["pixi_env_setup.sh"]

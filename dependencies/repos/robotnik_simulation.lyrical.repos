@@ -1,0 +1,37 @@
+# Dependency repositories for the ROS 2 Lyrical port of robotnik_simulation.
+#
+# Used by `pixi run import-repos`. robotnik_simulation itself is not listed:
+# the task symlinks this checkout into the workspace instead.
+#
+# Two entries point at the lyrical-devel branch of forks carrying changes
+# required on Lyrical that are not upstream yet:
+#   robotnik_description: controller_params_file argument for gz_ros2_control
+#   teleop_panel:         builds against Qt6
+# The rest are pinned to the same commits as robotnik_simulation.jazzy.repos.
+---
+repositories:
+  robotnik/robotnik_description:
+    type: git
+    url: https://github.com/kaushikbalasundar/robotnik_description.git
+    version: lyrical-devel
+  robotnik/robotnik_sensors:
+    type: git
+    url: https://github.com/RobotnikAutomation/robotnik_sensors.git
+    version: e5186c343910b86a924201edb256f79eb0f73295
+  robotnik/robotnik_common:
+    type: git
+    url: https://github.com/RobotnikAutomation/robotnik_common.git
+    version: 0153704842c35f115da65c7404d6ce6392f9c817
+  robotnik/robotnik_interfaces:
+    type: git
+    url: https://github.com/RobotnikAutomation/robotnik_interfaces.git
+    version: ee903abca2ede1872b4cfa264b435f4a11e7f081
+  robotnik/robotnik_moveit_configs:
+    type: git
+    url: https://github.com/RobotnikAutomation/robotnik_moveit_configs.git
+    version: 45bc50947eafc3f1abd2492e9ac0e367843882e5
+  robotnik/robotnik_teleop_panel:
+    type: git
+    url: https://github.com/kaushikbalasundar/teleop_panel.git
+    version: lyrical-devel
+

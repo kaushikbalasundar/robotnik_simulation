@@ -1,0 +1,50 @@
+---
+/**:
+  # robotnik_base_control parameters when base_controller:=upstream.
+  # Uses ros2_controllers' mecanum_drive_controller instead of the proprietary
+  # robotnik_controllers/RBKairosController (no ROS 2 Lyrical build).
+  #
+  # Kinematics come from robotnik_description:
+  #   wheels_radius = mecanum_wheel_radius (rbkairos_mecanum_wheel.urdf.xacro)
+  #   sum_of_robot_center_projection_on_X_Y_axis = wheel_offset_x + wheel_offset_y
+  #     = 0.21528 + 0.2590 (rbkairos_base.urdf.xacro)
+  # Velocity and acceleration limits mirror the Robotnik profile in
+  # rbkairos_ros2_control.yaml.
+
+  robotnik_base_control:
+    ros__parameters:
+      reference_timeout: 2.0
+
+      front_left_wheel_command_joint_name: $(var frame_prefix)front_left_wheel_joint
+      front_right_wheel_command_joint_name: $(var frame_prefix)front_right_wheel_joint
+      rear_left_wheel_command_joint_name: $(var frame_prefix)back_left_wheel_joint
+      rear_right_wheel_command_joint_name: $(var frame_prefix)back_right_wheel_joint
+
+      kinematics:
+        wheels_radius: 0.127
+        sum_of_robot_center_projection_on_X_Y_axis: 0.47428
+
+      base_frame_id: $(var frame_prefix)base_footprint
+      odom_frame_id: $(var frame_prefix)odom
+      tf_frame_prefix_enable: false
+      enable_odom_tf: true
+      pose_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 0.01]
+      twist_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 0.01]
+
+      linear:
+        x:
+          max_velocity: 1.0
+          min_velocity: -1.0
+          max_acceleration: 1.5
+          max_deceleration: -3.0
+        y:
+          max_velocity: 1.0
+          min_velocity: -1.0
+          max_acceleration: 1.5
+          max_deceleration: -3.0
+      angular:
+        z:
+          max_velocity: 1.5
+          min_velocity: -1.5
+          max_acceleration: 7.5
+          max_deceleration: -7.5
