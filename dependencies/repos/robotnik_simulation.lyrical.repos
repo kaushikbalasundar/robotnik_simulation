@@ -3,9 +3,9 @@
 # Used by `pixi run import-repos`. robotnik_simulation itself is not listed:
 # the task symlinks this checkout into the workspace instead.
 #
-# Two entries point at forks carrying changes required on Lyrical that are
-# not upstream yet:
-#   robotnik_description: rbkairos uses mecanum_drive_controller
+# Two entries point at the lyrical-devel branch of forks carrying changes
+# required on Lyrical that are not upstream yet:
+#   robotnik_description: controller_params_file argument for gz_ros2_control
 #   teleop_panel:         builds against Qt6
 # The rest are pinned to the same commits as robotnik_simulation.jazzy.repos.
 ---
@@ -13,7 +13,7 @@ repositories:
   robotnik/robotnik_description:
     type: git
     url: https://github.com/kaushikbalasundar/robotnik_description.git
-    version: feature/lyrical/mecanum-controller-type
+    version: lyrical-devel
   robotnik/robotnik_sensors:
     type: git
     url: https://github.com/RobotnikAutomation/robotnik_sensors.git
@@ -33,5 +33,5 @@ repositories:
   robotnik/robotnik_teleop_panel:
     type: git
     url: https://github.com/kaushikbalasundar/teleop_panel.git
-    version: feature/lyrical/qt6
+    version: lyrical-devel
 
