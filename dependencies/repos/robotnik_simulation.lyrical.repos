@@ -12,12 +12,12 @@
 repositories:
   robotnik/robotnik_description:
     type: git
-    url: https://github.com/kaushikbalasundar/robotnik_description.git
-    version: lyrical-devel
+    url: https://github.com/aaronchongth/robotnik_description.git
+    version: 57c520600982acb43458f2ea89fe22be886576ed
   robotnik/robotnik_sensors:
     type: git
-    url: https://github.com/RobotnikAutomation/robotnik_sensors.git
-    version: e5186c343910b86a924201edb256f79eb0f73295
+    url: https://github.com/aaronchongth/robotnik_sensors.git
+    version: dcfff1d501e4c536d0d25c1bc79e05c0463f88dc
   robotnik/robotnik_common:
     type: git
     url: https://github.com/RobotnikAutomation/robotnik_common.git

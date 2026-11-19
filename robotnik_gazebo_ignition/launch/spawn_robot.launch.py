@@ -150,6 +150,8 @@ def launch_setup(context, params):
             'gazebo_ignition': 'true',
             'arm_type': params['arm_type'],
             'low_performance_simulation': params['low_performance_simulation'],
+            'use_gpu_lidar': params['use_gpu_lidar'],
+            'enable_camera': params['enable_camera'],
             'controller_params_file': controller_params_file,
         }.items(),
     ))
@@ -198,9 +200,11 @@ def launch_setup(context, params):
                 (f"/{robot_id}/{camera_name}_camera_depth/depth/image_raw", f"/{robot_id}/{camera_name}_rgbd_camera/depth/image_raw", "sensor_msgs/msg/Image", "gz.msgs.Image", "GZ_TO_ROS"),
             ])
 
-        add_camera("front")
-        add_camera("rear")
-        add_camera("top_ptz")
+        enable_camera = substitute_param_context(params['enable_camera'], context).lower() in ('true', '1')
+        if enable_camera:
+            add_camera("front")
+            add_camera("rear")
+            add_camera("top_ptz")
         #add_depth_camera("front")
         if robot_model != "rbcar":
             add_laser("front")
@@ -372,6 +376,8 @@ def generate_launch_description():
         ("rviz_config", "RViz configuration file", "", "CONFIG_RVIZ"),
         ("use_sim_time", "Use simulation time", "True", "USE_SIM_TIME"),
         ("low_performance_simulation", "Enable Low Performance Simulation", "False", "LOW_PERFORMANCE_SIMULATION"),
+        ("use_gpu_lidar", "Use GPU lidar sensor plugin in Gazebo (set False for CpuLidar)", "True", "USE_GPU_LIDAR"),
+        ("enable_camera", "Enable simulated camera sensor plugins and bridges", "True", "ENABLE_CAMERA"),
         ("base_controller", "Base controller: 'robotnik' (proprietary robotnik_controllers) or 'upstream' (ros2_controllers)", "robotnik", "BASE_CONTROLLER"),
     ]
 

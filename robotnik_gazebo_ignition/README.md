@@ -211,6 +211,8 @@ ros2 launch robotnik_gazebo_ignition spawn_robot.launch.py \
 | `rviz_config` | no | Full path to a custom RViz2 config; overrides the default | `/path/to/custom_config.rviz` |
 | `use_sim_time` | no | Use simulation time | `true` |
 | `low_performance_simulation` | no | Enable lower-performance simulation options where supported | `false` |
+| `use_gpu_lidar` | no | Use `gpu_lidar` (`true`) or physics-backed `lidar` (`false`, requires `CpuLidar` world plugin) | `true` |
+| `enable_camera` | no | Enable simulated camera sensor plugins and camera topic bridges | `true` |
 
 #### Supported robots
 
